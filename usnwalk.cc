@@ -17,12 +17,13 @@ int main(int argc, char *argv[]) {
     //std::wcout.imbue(utf8);
 
     DWORD rc = 0, n = 0;
-    // TODO: Can't seem to open as overlapped.
     HANDLE hVol = CreateFileW(
         L"\\\\?\\C:",
         GENERIC_READ | GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL, OPEN_EXISTING, NULL, NULL
+        NULL, OPEN_EXISTING, 
+        NULL, //FILE_FLAG_OVERLAPPED,
+        NULL
     );
     if (hVol == INVALID_HANDLE_VALUE) {
         cout << "error: CreateFileW: " << 
@@ -30,14 +31,16 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    /*HANDLE hVolIocp = CreateIoCompletionPort(
+    /*
+    HANDLE hVolIocp = CreateIoCompletionPort(
         hVol, NULL, 0, 0
     );
     if (!hVolIocp) {
         cout << "error: CreateIoCompletionPort: " <<
             GetLastError() << endl;
         exit(1);
-    }*/
+    }
+    */
 
     USN_JOURNAL_DATA ujd = { 0 };
     n = 0;
@@ -55,8 +58,6 @@ int main(int argc, char *argv[]) {
     cout << "Journal ID: " << ujd.UsnJournalID << endl;
     cout << "First USN:  " << ujd.FirstUsn << endl;
 
-    return EXIT_SUCCESS;
-
     // If you're on > Windows 8.1 must initialize the version headers. This
     // breaks backwards compat? Can't get the _V0 version working.
     MFT_ENUM_DATA_V1 med = {
@@ -67,8 +68,10 @@ int main(int argc, char *argv[]) {
         .MaxMajorVersion = 2, // Set this to 3 to get v3 records back, useful
         // for ReFS only?
     };
+    OVERLAPPED ol = { 0 };
     uint8_t buffer[8192];
     memset(buffer, 0, sizeof buffer);
+
     while (true) {
         n = 0;
         // DeviceIoControl returns 0 on success, contrary to general documentation.
@@ -126,6 +129,7 @@ int main(int argc, char *argv[]) {
     }
     */
 
+    //CloseHandle(hVolIocp);
     CloseHandle(hVol);
     return EXIT_SUCCESS;
 }
